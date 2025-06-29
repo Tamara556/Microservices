@@ -1,5 +1,6 @@
 server:
-  port: 8082
+  port: 0
+
 spring:
   application:
     name: inventory-service
@@ -10,8 +11,12 @@ spring:
     username: root
     password: root
 
-
   jpa:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
