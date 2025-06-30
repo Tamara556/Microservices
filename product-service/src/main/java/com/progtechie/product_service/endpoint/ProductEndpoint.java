@@ -2,7 +2,6 @@ package com.progtechie.product_service.endpoint;
 
 import com.progtechie.product_service.dto.ProductRequest;
 import com.progtechie.product_service.dto.ProductResponse;
-import com.progtechie.product_service.model.Product;
 import com.progtechie.product_service.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,6 +27,4 @@ public class ProductEndpoint {
     public List<ProductResponse> getAllProducts() {
         return productService.getAllProducts();
     }
-
-
 }
