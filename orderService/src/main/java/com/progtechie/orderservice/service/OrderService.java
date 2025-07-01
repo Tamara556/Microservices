@@ -6,24 +6,24 @@ import com.progtechie.orderservice.dto.OrderRequest;
 import com.progtechie.orderservice.entity.Order;
 import com.progtechie.orderservice.entity.OrderLineItems;
 import com.progtechie.orderservice.repository.OrderRepository;
-import jakarta.transaction.Transactional;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class OrderService {
 
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
 
-    public void placeOrder(OrderRequest orderRequest) {
+    @CircuitBreaker(name = "inventory-service", fallbackMethod = "fallbackMethod")
+    public Mono<String> placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
 
@@ -33,24 +33,33 @@ public class OrderService {
                 .toList();
 
         order.setOrderLineItemsList(orderLineItems);
-
         List<String> skuCodes = extractSkuCodes(orderLineItems);
-
-        InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
+        Mono<InventoryResponse[]> skuCode = webClientBuilder.build()
+                .get()
                 .uri("http://inventory-service/api/inventory",
                         uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
                 .retrieve()
-                .bodyToMono(InventoryResponse[].class)
-                .block();
+                .bodyToMono(InventoryResponse[].class);
+        webClientBuilder.build()
+                .get()
+                .uri("http://inventory-service/api/inventory",
+                        uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
+                .retrieve()
+                .bodyToMono(InventoryResponse[].class);
+        return skuCode
+                .flatMap(inventoryResponses -> {
+                    System.out.println("*******");
+                    boolean allInStock = List.of(inventoryResponses)
+                            .stream()
+                            .allMatch(InventoryResponse::isInStock);
 
-        boolean allProductsInStock = Arrays.stream(inventoryResponseArray)
-                .allMatch(InventoryResponse::isInStock);
-
-        if (allProductsInStock) {
-            orderRepository.save(order);
-        } else {
-            throw new IllegalArgumentException("Some products are not in stock. Order not placed.");
-        }
+                    if (allInStock) {
+                        orderRepository.save(order);
+                        return Mono.just("Order placed successfully!");
+                    } else {
+                        return Mono.error(new IllegalArgumentException("Some products are not in stock. Order not placed."));
+                    }
+                });
     }
 
     private OrderLineItems mapToEntity(OrderLineItemsDto dto) {
@@ -59,6 +68,11 @@ public class OrderService {
                 .quantity(dto.getQuantity())
                 .skuCode(dto.getSkuCode())
                 .build();
+    }
+
+    public Mono<String> fallbackMethod(OrderRequest orderRequest, Throwable ex) {
+        System.out.println("=======================");
+        return Mono.just("Oops! Something went wrong! Please try again later.");
     }
 
     private List<String> extractSkuCodes(List<OrderLineItems> items) {
