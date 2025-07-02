@@ -7,6 +7,7 @@ import com.progtechie.orderservice.entity.Order;
 import com.progtechie.orderservice.entity.OrderLineItems;
 import com.progtechie.orderservice.repository.OrderRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class OrderService {
     private final WebClient.Builder webClientBuilder;
 
     @CircuitBreaker(name = "inventory-service", fallbackMethod = "fallbackMethod")
+    @TimeLimiter(name = "inventory-service")
     public Mono<String> placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
@@ -70,9 +73,8 @@ public class OrderService {
                 .build();
     }
 
-    public Mono<String> fallbackMethod(OrderRequest orderRequest, Throwable ex) {
-        System.out.println("=======================");
-        return Mono.just("Oops! Something went wrong! Please try again later.");
+    public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, Throwable ex) {
+        return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong! please try again later");
     }
 
     private List<String> extractSkuCodes(List<OrderLineItems> items) {
