@@ -11,7 +11,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8181/realms/spring-boot-microservices-realm 
+          issuer-uri: http://localhost:8181/realms/spring-boot-microservices-realm
 
   cloud:
     gateway:
@@ -37,6 +37,14 @@ spring:
           uri: http://localhost:8761
           predicates:
             - Path=/eureka/**
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
 
 logging:
   level:

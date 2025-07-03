@@ -5,6 +5,10 @@ spring:
   application:
     name: orderService
 
+  kafka:
+    bootstrap-servers: localhost:9092
+
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/orders?createDatabaseIfNotExist=true
@@ -28,6 +32,13 @@ management:
     circuitbreakers:
       enabled: true
 
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+
 eureka:
   client:
     service-url:
@@ -49,4 +60,4 @@ resilience4j:
     instances:
       inventory:
         timeout-duration:
-          seconds: 3
+          seconds: 5
