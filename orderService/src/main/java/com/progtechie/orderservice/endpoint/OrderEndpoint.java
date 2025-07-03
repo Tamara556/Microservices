@@ -23,7 +23,6 @@ public class OrderEndpoint {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @CircuitBreaker(name = "inventory-service", fallbackMethod = "fallbackMethod")
-    @TimeLimiter(name = "inventory-service")
     @Retry(name = "inventory-service")
     public String placeOrder(@RequestBody OrderRequest orderRequest) {
         log.info("Placing Order");

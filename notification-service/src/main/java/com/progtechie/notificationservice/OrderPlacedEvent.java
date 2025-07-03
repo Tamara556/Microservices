@@ -1,4 +1,4 @@
-package com.progtechie.orderservice.event;
+package com.progtechie.notificationservice;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
